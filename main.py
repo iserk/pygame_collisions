@@ -89,7 +89,7 @@ class Game:
         # self.hero.y = SCREEN_SIZE[1] - GROUND_HEIGHT
         self.hero.y = 100
 
-        self.mountains = [Mountain.generate(self.scene, SCREEN_SIZE[0] + 200 + 500 * i) for i in range(1)]
+        self.mountains = [Mountain.generate(self.scene, SCREEN_SIZE[0] + 200 + 500 * i) for i in range(3)]
         self.ground = Ground(self.scene)
         self.clouds = [Cloud(self.scene, 100, 100), Cloud(self.scene, 300, 200), Cloud(self.scene, 500, 300)]
 
@@ -168,7 +168,7 @@ class GameObject:
 
 class HeroPlane(GameObject):
     COLOR = (200, 230, 255)
-    VERTICAL_SPEED = 100
+    VERTICAL_SPEED = 200
     HORIZONTAL_SPEED = 200
     HORIZONTAL_SPEED_STEP = 1
     HORIZONTAL_SPEED_MAX = 1000
@@ -186,24 +186,12 @@ class HeroPlane(GameObject):
             Vector2(self.scene.game.camera.x + self.x, self.y)
         ]
 
-    def handle_event(self, event):
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
-                self.render(self.scene.game.camera, BG_COLOR)
-                self.y -= 50
-                return False
-            elif event.key == pygame.K_DOWN:
-                self.render(self.scene.game.camera, BG_COLOR)
-                self.y += 50
-                return False
-        return True
-
     def on_collision(self, other):
         print(f'Collision between {self} and {other}')
         if isinstance(other, Ground):
             self.y = other.y - 20
-        elif isinstance(other, Cloud):
-            self.y = other.y - 50
+        # elif isinstance(other, Cloud):
+        #     self.y = other.y - 50
         elif isinstance(other, Mountain):
             self.y = other.y - other.height - 20
 
