@@ -6,16 +6,21 @@ import collision
 
 SCREEN_SIZE = (800, 600)
 GROUND_HEIGHT = 50
-BG_COLOR = (32, 128, 255)
 
 
 class Scene:
     def __init__(self, game):
         self.game = game
-        self.layers = {}  # dict of lists
+        self.layers = {0: []}
+        self.camera = None
+        self.hero = None
+        self.mountains = []
+        self.ground = None
+        self.clouds = []
 
     def activate(self):
-        self.layers = {}
+        self.layers = {0: []}
+        self.camera = Camera(self.game.screen, 0, 0)
 
     def add(self, obj, layer=0):
         if layer not in self.layers:
@@ -38,11 +43,6 @@ class Scene:
         for key in self.layers:
             for obj in self.layers[key]:
                 obj.update(dt, elapsed_time)
-                if isinstance(obj, Mountain):
-                    if obj.x + obj.width / 2 < self.game.camera.x:
-                        self.layers[key].remove(obj)
-                        del obj
-                        Mountain.generate(self, self.game.camera.x + SCREEN_SIZE[0] + 500)
 
     def detect_collisions(self):
         ## This version detects collisions between all objects
@@ -57,7 +57,7 @@ class Scene:
         #                     obj2.on_collision(obj1)
 
         # This version detects collisions between the hero and other objects
-        hero = self.game.hero
+        hero = self.hero
         for obj in self.layers[0]:
             if isinstance(obj, Mountain) or isinstance(obj, Ground) or isinstance(obj, Cloud):
                 if collision.sat_collision_check(hero.get_collider(), obj.get_collider()):
@@ -65,10 +65,96 @@ class Scene:
                     hero.on_collision(obj)
                     obj.on_collision(hero)
 
-    def render(self, camera):
+    def render_background(self):
+        pass
+
+    def render(self):
+        self.render_background()
+
         for key in sorted(self.layers.keys()):
             for obj in self.layers[key]:
-                obj.render(camera)
+                obj.render(self.camera)
+
+
+class GameScene(Scene):
+    BG_COLOR = (32, 128, 255)
+
+    def __init__(self, game):
+        super().__init__(game)
+
+    def activate(self):
+        super().activate()
+
+        self.hero = HeroPlane(None)
+        self.add(self.hero, layer=10)
+
+        self.hero.x = 100
+        self.hero.y = SCREEN_SIZE[1] - GROUND_HEIGHT
+        # self.hero.y = 100
+
+        self.mountains = [Mountain.generate(self, SCREEN_SIZE[0] + 200 + 500 * i) for i in range(3)]
+        self.ground = Ground(self)
+        self.clouds = [Cloud(self, 100, 100), Cloud(self, 300, 200), Cloud(self, 500, 300)]
+
+    def render_background(self):
+        self.camera.screen.fill(self.BG_COLOR)
+
+    def update(self, dt, elapsed_time):
+        super().update(dt, elapsed_time)
+
+        # self.camera.x = round(self.elapsed_time / 2)
+        self.camera.x += dt * self.hero.HORIZONTAL_SPEED / 1000
+        # self.camera.x += 1
+
+        for key in self.layers:
+            for obj in self.layers[key]:
+                if isinstance(obj, Mountain):
+                    if obj.x + obj.width / 2 < self.camera.x:
+                        self.layers[key].remove(obj)
+                        del obj
+
+                        Mountain.generate(self, self.camera.x + SCREEN_SIZE[0] + 500)
+
+
+class GameOverScene(Scene):
+    def __init__(self, game):
+        super().__init__(game)
+        self.game_over_text = None
+
+    def activate(self):
+        super().activate()
+
+        self.game_over_text = Text(None, 'Game Over', x=SCREEN_SIZE[0] / 2, y=SCREEN_SIZE[1] / 2, size=48, color=(255, 128, 128))
+
+        self.add(self.game_over_text, layer=100)
+
+    def handle_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                self.game.change_scene(GameScene(self.game))
+            elif event.key == pygame.K_ESCAPE:
+                self.game.is_running = False
+        return True
+
+
+class VictoryScene(Scene):
+    def __init__(self, game):
+        super().__init__(game)
+        self.victory_text = None
+
+    def activate(self):
+        super().activate()
+
+        self.victory_text = Text(None, 'You Win!', x=SCREEN_SIZE[0] / 2, y=SCREEN_SIZE[1] / 2, size=48, color=(64, 255, 128))
+        self.add(self.victory_text, layer=100)
+
+    def handle_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                self.game.change_scene(GameScene(self.game))
+            elif event.key == pygame.K_ESCAPE:
+                self.game.is_running = False
+        return True
 
 
 class Game:
@@ -79,19 +165,9 @@ class Game:
 
         self.clock = pygame.time.Clock()
 
-        self.scene = Scene(self)
+        self.scene = GameScene(self)
         self.scene.game = self
-        self.camera = Camera(self.screen, 0, 0)
-        self.hero = HeroPlane(None)
-        self.scene.add(self.hero, layer=10)
-
-        self.hero.x = 100
-        # self.hero.y = SCREEN_SIZE[1] - GROUND_HEIGHT
-        self.hero.y = 100
-
-        self.mountains = [Mountain.generate(self.scene, SCREEN_SIZE[0] + 200 + 500 * i) for i in range(3)]
-        self.ground = Ground(self.scene)
-        self.clouds = [Cloud(self.scene, 100, 100), Cloud(self.scene, 300, 200), Cloud(self.scene, 500, 300)]
+        self.scene.activate()
 
         self.start_time = pygame.time.get_ticks()
         self.dt = 0
@@ -99,8 +175,11 @@ class Game:
         self.is_running = False
         self.fps_list = []
 
+    def change_scene(self, scene):
+        self.scene = scene
+        self.scene.activate()
+
     def run(self):
-        self.screen.fill(BG_COLOR)
         self.is_running = True
 
         while self.is_running:
@@ -114,15 +193,9 @@ class Game:
                     pygame.quit()
                     exit()
 
-            # self.camera.x = round(self.elapsed_time / 2)
-            self.camera.x += self.dt * self.hero.HORIZONTAL_SPEED / 1000
-            # self.camera.x += 1
-
-            self.screen.fill(BG_COLOR)
-
             self.scene.update(self.dt, self.elapsed_time)
             self.scene.detect_collisions()
-            self.scene.render(self.camera)
+            self.scene.render()
             fps = self.clock.get_fps()
             self.fps_list.append(fps)
             pygame.display.set_caption(
@@ -166,6 +239,23 @@ class GameObject:
         return f'{self.__class__.__name__}({self.x}, {self.y})'
 
 
+class Text(GameObject):
+    def __init__(self, scene, text, x, y, size=12, color=(255, 255, 255)):
+        super().__init__(scene)
+        self.text = text
+        self.size = size
+        self.color = color
+        self.x = x
+        self.y = y
+
+    def render(self, camera):
+        font = pygame.font.SysFont(None, self.size)
+        text = font.render(self.text, True, self.color)
+        text_rect = text.get_rect()
+        text_rect.center = (self.x, self.y)
+        camera.screen.blit(text, text_rect)
+
+
 class HeroPlane(GameObject):
     COLOR = (200, 230, 255)
     VERTICAL_SPEED = 200
@@ -180,20 +270,23 @@ class HeroPlane(GameObject):
 
     def get_collider(self):
         return [
-            Vector2(self.scene.game.camera.x + self.x, self.y - 20),
-            Vector2(self.scene.game.camera.x + self.x + 100, self.y - 20),
-            Vector2(self.scene.game.camera.x + self.x + 100, self.y),
-            Vector2(self.scene.game.camera.x + self.x, self.y)
+            Vector2(self.scene.camera.x + self.x, self.y - 20),
+            Vector2(self.scene.camera.x + self.x + 100, self.y - 20),
+            Vector2(self.scene.camera.x + self.x + 100, self.y),
+            Vector2(self.scene.camera.x + self.x, self.y)
         ]
 
     def on_collision(self, other):
         print(f'Collision between {self} and {other}')
         if isinstance(other, Ground):
             self.y = other.y - 20
-        # elif isinstance(other, Cloud):
-        #     self.y = other.y - 50
+            # self.scene.game.change_scene(VictoryScene(self.scene.game))
+        elif isinstance(other, Cloud):
+            # self.y = other.y - 50
+            self.scene.game.change_scene(VictoryScene(self.scene.game))
         elif isinstance(other, Mountain):
-            self.y = other.y - other.height - 20
+            # self.y = other.y - other.height - 20
+            self.scene.game.change_scene(GameOverScene(self.scene.game))
 
     def update(self, dt, elapsed_time):
         keys = pygame.key.get_pressed()
@@ -233,8 +326,8 @@ class Cloud(GameObject):
         ]
 
     def update(self, dt, elapsed_time):
-        if self.x < self.scene.game.camera.x - 500:
-            self.x = self.scene.game.camera.x + SCREEN_SIZE[0] + random.randint(0, 500)
+        if self.x < self.scene.camera.x - 500:
+            self.x = self.scene.camera.x + SCREEN_SIZE[0] + random.randint(0, 500)
             self.y = random.randint(0, SCREEN_SIZE[1] - GROUND_HEIGHT - 100)
 
     def render(self, camera):
@@ -274,18 +367,6 @@ class Mountain(GameObject):
         ]
 
     def render(self, camera):
-        # pygame.draw.line(
-        #     camera.screen,
-        #     (128, 64, 32),
-        #     (self.x - self.width / 2 - camera.x, self.y - camera.y),
-        #     (self.x - camera.x, self.y - self.height - camera.y), 1)
-        #
-        # pygame.draw.line(
-        #     camera.screen,
-        #     BG_COLOR,
-        #     (self.x + self.width / 2 - camera.x, self.y - camera.y),
-        #     (self.x - camera.x, self.y - self.height - camera.y), 3)
-
         pygame.draw.polygon(
             camera.screen,
             (128, 64, 32),
@@ -315,10 +396,10 @@ class Ground(GameObject):
 
     def get_collider(self):
         return [
-            Vector2(self.x + self.scene.game.camera.x, self.y),
-            Vector2(self.x + SCREEN_SIZE[0] + self.scene.game.camera.x, self.y),
-            Vector2(self.x + SCREEN_SIZE[0] + self.scene.game.camera.x, SCREEN_SIZE[1]),
-            Vector2(self.x + self.scene.game.camera.x, SCREEN_SIZE[1])
+            Vector2(self.x + self.scene.camera.x, self.y),
+            Vector2(self.x + SCREEN_SIZE[0] + self.scene.camera.x, self.y),
+            Vector2(self.x + SCREEN_SIZE[0] + self.scene.camera.x, SCREEN_SIZE[1]),
+            Vector2(self.x + self.scene.camera.x, SCREEN_SIZE[1])
         ]
 
     def render(self, camera):
