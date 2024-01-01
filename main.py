@@ -13,10 +13,6 @@ class Scene:
         self.game = game
         self.layers = {0: []}
         self.camera = None
-        self.hero = None
-        self.mountains = []
-        self.ground = None
-        self.clouds = []
 
     def activate(self):
         self.layers = {0: []}
@@ -45,25 +41,16 @@ class Scene:
                 obj.update(dt, elapsed_time)
 
     def detect_collisions(self):
-        ## This version detects collisions between all objects
-        # for key in self.layers:
-        #     for obj1 in self.layers[key]:
-        #         for obj2 in self.layers[key]:
-        #             if obj1 != obj2:
-        #                 # print(obj1.get_collider(), obj2.get_collider())
-        #                 if collision.sat_collision_check(obj1.get_collider(), obj2.get_collider()):
-        #                     print(f'Collision between {obj1} and {obj2}')
-        #                     obj1.on_collision(obj2)
-        #                     obj2.on_collision(obj1)
-
-        # This version detects collisions between the hero and other objects
-        hero = self.hero
-        for obj in self.layers[0]:
-            if isinstance(obj, Mountain) or isinstance(obj, Ground) or isinstance(obj, Cloud):
-                if collision.sat_collision_check(hero.get_collider(), obj.get_collider()):
-                    # print(f'Collision between {hero} and {obj}')
-                    hero.on_collision(obj)
-                    obj.on_collision(hero)
+        # This version detects collisions between all objects
+        for key in self.layers:
+            for obj1 in self.layers[key]:
+                for obj2 in self.layers[key]:
+                    if obj1 != obj2:
+                        # print(obj1.get_collider(), obj2.get_collider())
+                        if collision.sat_collision_check(obj1.get_collider(), obj2.get_collider()):
+                            print(f'Collision between {obj1} and {obj2}')
+                            obj1.on_collision(obj2)
+                            obj2.on_collision(obj1)
 
     def render_background(self):
         pass
@@ -81,6 +68,10 @@ class GameScene(Scene):
 
     def __init__(self, game):
         super().__init__(game)
+        self.hero = None
+        self.mountains = []
+        self.ground = None
+        self.clouds = []
 
     def activate(self):
         super().activate()
@@ -89,12 +80,22 @@ class GameScene(Scene):
         self.add(self.hero, layer=10)
 
         self.hero.x = 100
-        self.hero.y = SCREEN_SIZE[1] - GROUND_HEIGHT
+        self.hero.y = SCREEN_SIZE[1] - GROUND_HEIGHT - 10
         # self.hero.y = 100
 
         self.mountains = [Mountain.generate(self, SCREEN_SIZE[0] + 200 + 500 * i) for i in range(3)]
         self.ground = Ground(self)
         self.clouds = [Cloud(self, 100, 100), Cloud(self, 300, 200), Cloud(self, 500, 300)]
+
+    def detect_collisions(self):
+        # This version detects collisions between the hero and other objects
+        hero = self.hero
+        for obj in self.layers[0]:
+            if isinstance(obj, Mountain) or isinstance(obj, Ground) or isinstance(obj, Cloud):
+                if collision.sat_collision_check(hero.get_collider(), obj.get_collider()):
+                    # print(f'Collision between {hero} and {obj}')
+                    hero.on_collision(obj)
+                    obj.on_collision(hero)
 
     def render_background(self):
         self.camera.screen.fill(self.BG_COLOR)
@@ -279,13 +280,11 @@ class HeroPlane(GameObject):
     def on_collision(self, other):
         print(f'Collision between {self} and {other}')
         if isinstance(other, Ground):
-            self.y = other.y - 20
-            # self.scene.game.change_scene(VictoryScene(self.scene.game))
-        elif isinstance(other, Cloud):
-            # self.y = other.y - 50
+            self.y = other.y - 10
             self.scene.game.change_scene(VictoryScene(self.scene.game))
+        # elif isinstance(other, Cloud):
+        #     self.scene.game.change_scene(VictoryScene(self.scene.game))
         elif isinstance(other, Mountain):
-            # self.y = other.y - other.height - 20
             self.scene.game.change_scene(GameOverScene(self.scene.game))
 
     def update(self, dt, elapsed_time):
