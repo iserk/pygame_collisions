@@ -45,6 +45,7 @@ class Scene:
                         Mountain.generate(self, self.game.camera.x + SCREEN_SIZE[0] + 500)
 
     def detect_collisions(self):
+        ## This version detects collisions between all objects
         # for key in self.layers:
         #     for obj1 in self.layers[key]:
         #         for obj2 in self.layers[key]:
@@ -54,11 +55,13 @@ class Scene:
         #                     print(f'Collision between {obj1} and {obj2}')
         #                     obj1.on_collision(obj2)
         #                     obj2.on_collision(obj1)
+
+        # This version detects collisions between the hero and other objects
         hero = self.game.hero
         for obj in self.layers[0]:
             if isinstance(obj, Mountain) or isinstance(obj, Ground) or isinstance(obj, Cloud):
                 if collision.sat_collision_check(hero.get_collider(), obj.get_collider()):
-                    print(f'Collision between {hero} and {obj}')
+                    # print(f'Collision between {hero} and {obj}')
                     hero.on_collision(obj)
                     obj.on_collision(hero)
 
@@ -70,31 +73,31 @@ class Scene:
 
 class Game:
     def __init__(self):
-            pygame.init()
-            self.screen = pygame.display.set_mode(SCREEN_SIZE, pygame.DOUBLEBUF | pygame.HWSURFACE, vsync=1)
-            pygame.display.set_caption("Wire Plane")
+        pygame.init()
+        self.screen = pygame.display.set_mode(SCREEN_SIZE, pygame.DOUBLEBUF | pygame.HWSURFACE, vsync=1)
+        pygame.display.set_caption("Wire Plane")
 
-            self.clock = pygame.time.Clock()
+        self.clock = pygame.time.Clock()
 
-            self.scene = Scene(self)
-            self.scene.game = self
-            self.camera = Camera(self.screen, 0, 0)
-            self.hero = HeroPlane(None)
-            self.scene.add(self.hero, layer=10)
+        self.scene = Scene(self)
+        self.scene.game = self
+        self.camera = Camera(self.screen, 0, 0)
+        self.hero = HeroPlane(None)
+        self.scene.add(self.hero, layer=10)
 
-            self.hero.x = 100
-            # self.hero.y = SCREEN_SIZE[1] - GROUND_HEIGHT
-            self.hero.y = 100
+        self.hero.x = 100
+        # self.hero.y = SCREEN_SIZE[1] - GROUND_HEIGHT
+        self.hero.y = 100
 
-            self.mountains = [Mountain.generate(self.scene, SCREEN_SIZE[0] + 200 + 500 * i) for i in range(1)]
-            self.ground = Ground(self.scene)
-            self.clouds = [Cloud(self.scene, 100, 100), Cloud(self.scene, 300, 200), Cloud(self.scene, 500, 300)]
+        self.mountains = [Mountain.generate(self.scene, SCREEN_SIZE[0] + 200 + 500 * i) for i in range(1)]
+        self.ground = Ground(self.scene)
+        self.clouds = [Cloud(self.scene, 100, 100), Cloud(self.scene, 300, 200), Cloud(self.scene, 500, 300)]
 
-            self.start_time = pygame.time.get_ticks()
-            self.dt = 0
-            self.elapsed_time = 0
-            self.is_running = False
-            self.fps_list = []
+        self.start_time = pygame.time.get_ticks()
+        self.dt = 0
+        self.elapsed_time = 0
+        self.is_running = False
+        self.fps_list = []
 
     def run(self):
         self.screen.fill(BG_COLOR)
@@ -122,7 +125,8 @@ class Game:
             self.scene.render(self.camera)
             fps = self.clock.get_fps()
             self.fps_list.append(fps)
-            pygame.display.set_caption(f"Wire Plane - FPS: {round(fps)}, Average FPS: {round(sum(self.fps_list) / len(self.fps_list))}, objects: {len(self.scene.layers[0])}")
+            pygame.display.set_caption(
+                f"Wire Plane - FPS: {round(fps)}, Average FPS: {round(sum(self.fps_list) / len(self.fps_list))}, objects: {len(self.scene.layers[0])}")
 
             pygame.display.flip()
 
@@ -194,6 +198,15 @@ class HeroPlane(GameObject):
                 return False
         return True
 
+    def on_collision(self, other):
+        print(f'Collision between {self} and {other}')
+        if isinstance(other, Ground):
+            self.y = other.y - 20
+        elif isinstance(other, Cloud):
+            self.y = other.y - 50
+        elif isinstance(other, Mountain):
+            self.y = other.y - other.height - 20
+
     def update(self, dt, elapsed_time):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w]:
@@ -230,6 +243,11 @@ class Cloud(GameObject):
             Vector2(self.x + 200, self.y + 50),
             Vector2(self.x + 150, self.y + 50)
         ]
+
+    def update(self, dt, elapsed_time):
+        if self.x < self.scene.game.camera.x - 500:
+            self.x = self.scene.game.camera.x + SCREEN_SIZE[0] + random.randint(0, 500)
+            self.y = random.randint(0, SCREEN_SIZE[1] - GROUND_HEIGHT - 100)
 
     def render(self, camera):
         pygame.draw.polygon(
@@ -289,6 +307,7 @@ class Mountain(GameObject):
                 (self.x - camera.x, self.y - self.height - camera.y)
             )
         )
+
     @staticmethod
     def generate(scene, x, height=None, width=None):
         if height is None:
