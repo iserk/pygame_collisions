@@ -121,13 +121,18 @@ class GameOverScene(Scene):
     def __init__(self, game):
         super().__init__(game)
         self.game_over_text = None
+        self.keys_text = None
 
     def activate(self):
         super().activate()
 
-        self.game_over_text = Text(None, 'Game Over', x=SCREEN_SIZE[0] / 2, y=SCREEN_SIZE[1] / 2, size=48, color=(255, 128, 128))
-
+        self.game_over_text = Text(None, 'Game Over', x=SCREEN_SIZE[0] / 2, y=SCREEN_SIZE[1] / 2, size=48, color=(255, 160, 160))
         self.add(self.game_over_text, layer=100)
+
+        self.keys_text = Text(None, 'Press <SPACE> to restart or <ESC> to quit',
+                              x=SCREEN_SIZE[0] / 2, y=SCREEN_SIZE[1] / 2 + 64,
+                              size=24, color='black')
+        self.add(self.keys_text, layer=100)
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -142,12 +147,18 @@ class VictoryScene(Scene):
     def __init__(self, game):
         super().__init__(game)
         self.victory_text = None
+        self.keys_text = None
 
     def activate(self):
         super().activate()
 
         self.victory_text = Text(None, 'You Win!', x=SCREEN_SIZE[0] / 2, y=SCREEN_SIZE[1] / 2, size=48, color=(64, 255, 128))
         self.add(self.victory_text, layer=100)
+
+        self.keys_text = Text(None, 'Press <SPACE> to restart or <ESC> to quit',
+                              x=SCREEN_SIZE[0] / 2, y=SCREEN_SIZE[1] / 2 + 64,
+                              size=24, color='black')
+        self.add(self.keys_text, layer=100)
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -250,8 +261,8 @@ class Text(GameObject):
         self.y = y
 
     def render(self, camera):
-        font = pygame.font.SysFont(None, self.size)
-        text = font.render(self.text, True, self.color)
+        font = pygame.font.SysFont('Arial', self.size)
+        text = font.render(self.text, False, self.color)
         text_rect = text.get_rect()
         text_rect.center = (self.x, self.y)
         camera.screen.blit(text, text_rect)
