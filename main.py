@@ -300,15 +300,15 @@ class HeroPlane(GameObject):
 
     def update(self, dt, elapsed_time):
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_w]:
+        if keys[pygame.K_w] or keys[pygame.K_UP]:
             self.y -= self.VERTICAL_SPEED * dt / 1000
-        elif keys[pygame.K_s]:
+        elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
             self.y += self.VERTICAL_SPEED * dt / 1000
-        elif keys[pygame.K_a]:
+        elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
             self.HORIZONTAL_SPEED -= self.HORIZONTAL_SPEED_STEP
             if self.HORIZONTAL_SPEED < 0:
                 self.HORIZONTAL_SPEED = 0
-        elif keys[pygame.K_d]:
+        elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
             self.HORIZONTAL_SPEED += self.HORIZONTAL_SPEED_STEP
             if self.HORIZONTAL_SPEED > self.HORIZONTAL_SPEED_MAX:
                 self.HORIZONTAL_SPEED = self.HORIZONTAL_SPEED_MAX
