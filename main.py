@@ -37,13 +37,9 @@ class Scene:
                 obj.update(dt, elapsed_time)
                 if isinstance(obj, Mountain):
                     if obj.x + obj.width / 2 < self.game.camera.x:
-                        print('deleting', obj)
-                        print('before', len(self.layers[key]), self.layers[key])
                         self.layers[key].remove(obj)
-                        print('after 1', len(self.layers[key]), self.layers[key])
                         del obj
                         Mountain.generate(self, self.game.camera.x + SCREEN_SIZE[0] + 500)
-                        print('after2', len(self.layers[key]), self.layers[key])
 
     def detect_collisions(self):
         for key in self.layers:
@@ -66,7 +62,7 @@ class Scene:
 class Game:
     def __init__(self):
             pygame.init()
-            self.screen = pygame.display.set_mode(SCREEN_SIZE)
+            self.screen = pygame.display.set_mode(SCREEN_SIZE, pygame.DOUBLEBUF | pygame.HWSURFACE, vsync=1)
             pygame.display.set_caption("Wire Plane")
 
             self.clock = pygame.time.Clock()
@@ -78,7 +74,8 @@ class Game:
             self.scene.add(self.hero, layer=10)
 
             self.hero.x = 100
-            self.hero.y = SCREEN_SIZE[1] - GROUND_HEIGHT
+            # self.hero.y = SCREEN_SIZE[1] - GROUND_HEIGHT
+            self.hero.y = 100
 
             self.mountains = [Mountain.generate(self.scene, SCREEN_SIZE[0] + 200 + 500 * i) for i in range(3)]
             self.ground = Ground(self.scene)
@@ -104,10 +101,11 @@ class Game:
                     pygame.quit()
                     exit()
 
-            # self.camera.x = round(self.elapsed_time)
-            self.camera.x += 1
+            # self.camera.x = round(self.elapsed_time / 2)
+            self.camera.x += self.dt * HeroPlane.HORIZONTAL_SPEED / 1000
+            # self.camera.x += 1
 
-            # self.screen.fill((0, 0, 0))
+            self.screen.fill(BG_COLOR)
 
             self.scene.update(self.dt, self.elapsed_time)
 
@@ -116,7 +114,7 @@ class Game:
             self.fps_list.append(fps)
             pygame.display.set_caption(f"Wire Plane - FPS: {round(fps)}, Average FPS: {round(sum(self.fps_list) / len(self.fps_list))}, objects: {len(self.scene.layers[0])}")
 
-            pygame.display.update()
+            pygame.display.flip()
 
 
 class Camera:
@@ -178,10 +176,8 @@ class HeroPlane(GameObject):
     def update(self, dt, elapsed_time):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w] or keys[pygame.K_a]:
-            self.render(self.scene.game.camera, BG_COLOR)
             self.y -= self.VERTICAL_SPEED * dt / 1000
         elif keys[pygame.K_s] or keys[pygame.K_d]:
-            self.render(self.scene.game.camera, BG_COLOR)
             self.y += self.VERTICAL_SPEED * dt / 1000
 
     def render(self, camera, color=COLOR):
@@ -202,26 +198,35 @@ class Mountain(GameObject):
         self.width = width
 
     def render(self, camera):
-        pygame.draw.line(
+        # pygame.draw.line(
+        #     camera.screen,
+        #     (128, 64, 32),
+        #     (self.x - self.width / 2 - camera.x, self.y - camera.y),
+        #     (self.x - camera.x, self.y - self.height - camera.y), 1)
+        #
+        # pygame.draw.line(
+        #     camera.screen,
+        #     BG_COLOR,
+        #     (self.x + self.width / 2 - camera.x, self.y - camera.y),
+        #     (self.x - camera.x, self.y - self.height - camera.y), 3)
+
+        pygame.draw.polygon(
             camera.screen,
             (128, 64, 32),
-            (self.x - self.width / 2 - camera.x, self.y - camera.y),
-            (self.x - camera.x, self.y - self.height - camera.y), 1)
-
-        pygame.draw.line(
-            camera.screen,
-            BG_COLOR,
-            (self.x + self.width / 2 - camera.x, self.y - camera.y),
-            (self.x - camera.x, self.y - self.height - camera.y), 3)
-
+            (
+                (self.x - self.width / 2 - camera.x, self.y - camera.y),
+                (self.x + self.width / 2 - camera.x, self.y - camera.y),
+                (self.x - camera.x, self.y - self.height - camera.y)
+            )
+        )
     @staticmethod
     def generate(scene, x, height=None, width=None):
         if height is None:
-            height = random.randint(Mountain.MIN_HEIGHT, Mountain.MAX_HEIGHT)
-            # height = 400
+            # height = random.randint(Mountain.MIN_HEIGHT, Mountain.MAX_HEIGHT)
+            height = 400
         if width is None:
-            width = round(height * random.randint(80, 120) / 100)
-            # width = 400
+            # width = round(height * random.randint(80, 120) / 100)
+            width = 400
         return Mountain(scene, x, height, width)
 
 
