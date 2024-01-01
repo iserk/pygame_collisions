@@ -102,7 +102,7 @@ class Game:
                     exit()
 
             # self.camera.x = round(self.elapsed_time / 2)
-            self.camera.x += self.dt * HeroPlane.HORIZONTAL_SPEED / 1000
+            self.camera.x += self.dt * self.hero.HORIZONTAL_SPEED / 1000
             # self.camera.x += 1
 
             self.screen.fill(BG_COLOR)
@@ -153,8 +153,8 @@ class HeroPlane(GameObject):
     COLOR = (200, 230, 255)
     VERTICAL_SPEED = 100
     HORIZONTAL_SPEED = 200
-    HORIZONTAL_SPEED_STEP = 10
-    HORIZONTAL_SPEED_MAX = 500
+    HORIZONTAL_SPEED_STEP = 1
+    HORIZONTAL_SPEED_MAX = 1000
 
     def __init__(self, game):
         super().__init__(game)
@@ -175,10 +175,18 @@ class HeroPlane(GameObject):
 
     def update(self, dt, elapsed_time):
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_w] or keys[pygame.K_a]:
+        if keys[pygame.K_w]:
             self.y -= self.VERTICAL_SPEED * dt / 1000
-        elif keys[pygame.K_s] or keys[pygame.K_d]:
+        elif keys[pygame.K_s]:
             self.y += self.VERTICAL_SPEED * dt / 1000
+        elif keys[pygame.K_a]:
+            self.HORIZONTAL_SPEED -= self.HORIZONTAL_SPEED_STEP
+            if self.HORIZONTAL_SPEED < 0:
+                self.HORIZONTAL_SPEED = 0
+        elif keys[pygame.K_d]:
+            self.HORIZONTAL_SPEED += self.HORIZONTAL_SPEED_STEP
+            if self.HORIZONTAL_SPEED > self.HORIZONTAL_SPEED_MAX:
+                self.HORIZONTAL_SPEED = self.HORIZONTAL_SPEED_MAX
 
     def render(self, camera, color=COLOR):
         pygame.draw.rect(camera.screen, color, (self.x, self.y - 20, 100, 20))
@@ -222,11 +230,11 @@ class Mountain(GameObject):
     @staticmethod
     def generate(scene, x, height=None, width=None):
         if height is None:
-            # height = random.randint(Mountain.MIN_HEIGHT, Mountain.MAX_HEIGHT)
-            height = 400
+            height = random.randint(Mountain.MIN_HEIGHT, Mountain.MAX_HEIGHT)
+            # height = 400
         if width is None:
-            # width = round(height * random.randint(80, 120) / 100)
-            width = 400
+            width = round(height * random.randint(80, 120) / 100)
+            # width = 400
         return Mountain(scene, x, height, width)
 
 
