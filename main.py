@@ -1,7 +1,7 @@
 import random
 import pygame
 
-from vectors import Vector2
+from pygame import Vector2
 import collision
 
 SCREEN_SIZE = (800, 600)
